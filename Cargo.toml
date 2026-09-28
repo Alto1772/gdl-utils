@@ -1,0 +1,24 @@
+[package]
+name = "gdl-utils"
+description = "A wrapper for gallery-dl with extra functionalities such as combining images, managing metadata, and so much more."
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.6", features = ["derive"] }
+csscolorparser = "0.8.4"
+image = "0.25.10"
+strum = { version = "0.28.0", features = ["derive"] }
+thiserror = "2.0.20"
+
+[features]
+hdri = []
+
+[dev-dependencies]
+glob = "0.3.4"
+paste = "1.0.15"
+proptest = "1.11.0"
+
+[profile.release]
+strip = true
