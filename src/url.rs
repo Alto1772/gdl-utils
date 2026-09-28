@@ -29,13 +29,15 @@ impl ImageUrl {
         &self.source
     }
 
-    pub fn delete(&mut self) {
+    pub fn delete(&mut self) -> Result<(), (&str, std::io::Error)> {
         if !self.deleted {
+            if let Err(e) = std::fs::remove_file(&self.source) {
+                return Err((&self.source, e));
+            }
             self.deleted = true;
-            // TODO add functionality
         }
+        Ok(())
     }
-
 }
 
 pub fn parse_image_url(url: &str) -> ImageUrl {

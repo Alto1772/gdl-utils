@@ -121,15 +121,21 @@ pub enum TileFitBy {
 }
 
 impl ImageCombiner {
-    pub fn delete_sources(&mut self) {
+    pub fn delete_sources(&mut self) -> Result<(), Vec<(&str, std::io::Error)>> {
+        let mut errs = vec![];
         for layer in &mut self.layouts {
             match layer {
-                CombineLayout::Single(img) => img.delete(),
-                CombineLayout::Tiled(_tile, images) => {
-                    images.iter_mut().for_each(ImageUrl::delete);
+                CombineLayout::Single(img) => {
+                    if let Err(e) = img.delete() {
+                        errs.push(e)
+                    }
+                }
+                CombineLayout::Tiled(_, images) => {
+                    errs.extend(images.iter_mut().flat_map(|i| i.delete().err()));
                 }
             }
         }
+        errs.is_empty().ok_or(errs)
     }
 
     pub fn resolve_urls(&mut self) {

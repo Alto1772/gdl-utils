@@ -376,6 +376,10 @@ impl CombineArgs {
 
         Ok(layout)
     }
+
+    pub fn request_delete(&self) -> bool {
+        self.delete
+    }
 }
 
 fn flush_tile_group(

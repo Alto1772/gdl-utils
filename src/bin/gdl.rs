@@ -43,12 +43,9 @@ fn main() -> Result<()> {
 
 fn do_combine(args: CombineArgs) -> Result<()> {
     let path = args.get_output();
-    let combiner = args.to_combiner()?;
+    let mut combiner = args.to_combiner()?;
 
-    // println!("Combiner Data: {combiner:#?}\n");
-    // println!("Output path: {path}\n");
-
-    let canvas = ImageCanvas::from_combiner(combiner)?;
+    let canvas = ImageCanvas::from_combiner(combiner.clone())?;
     let image = DynamicImage::from(canvas.build());
     let (canvas_w, canvas_h) = canvas.dimensions();
     let scale = canvas.scale();
@@ -66,7 +63,18 @@ fn do_combine(args: CombineArgs) -> Result<()> {
     if res.is_err() {
         let _ = std::fs::remove_file(path);
     }
-    res
+    res?;
+
+    if args.request_delete()
+        && let Err(errs) = combiner.delete_sources()
+    {
+        println!("Cannot delete {} of the following images:", errs.len());
+        for (path, err) in errs {
+            println!("  {path}: {err}");
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
