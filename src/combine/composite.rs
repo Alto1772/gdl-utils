@@ -9,14 +9,13 @@ use crate::combine::{
 };
 use crate::url::ImageUrl;
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 struct Size {
     w: f32,
     h: f32,
 }
 
-/// A destination rectangle in unscal
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 struct Rect {
     x: f32,
     y: f32,
@@ -68,14 +67,15 @@ pub enum CanvasCombineLayout {
 pub struct ImageLayer {
     rect: Rect,
     image: DynamicImage,
+    source: ImageUrl,
 }
 
 impl ImageLayer {
-    fn new(img: &ImageUrl) -> Result<Self, ImageReadError> {
-        let image = img.read()?;
+    fn new(source: ImageUrl) -> Result<Self, ImageReadError> {
         Ok(ImageLayer {
             rect: Rect::default(),
-            image,
+            image: source.read()?,
+            source,
         })
     }
 
@@ -115,11 +115,11 @@ impl ImageCanvas {
             .map(|layout| {
                 Ok(match layout {
                     CombineLayout::Single(img) => {
-                        CanvasCombineLayout::Single(ImageLayer::new(&img)?)
+                        CanvasCombineLayout::Single(ImageLayer::new(img)?)
                     }
                     CombineLayout::Tiled(tile, images) => CanvasCombineLayout::Tiled(
                         images
-                            .iter()
+                            .into_iter()
                             .map(ImageLayer::new)
                             .collect::<Result<Vec<_>, _>>()?,
                         tile,
@@ -432,6 +432,24 @@ impl ImageCanvas {
 
     pub fn scale(&self) -> f32 {
         self.scale
+    }
+
+    pub fn delete_sources(&mut self) -> Result<(), Vec<(&str, std::io::Error)>> {
+        let mut errs = vec![];
+        for layers in &mut self.composite {
+            match layers {
+                CanvasCombineLayout::Single(img) => {
+                    if let Err(e) = img.source.delete() {
+                        errs.push(e);
+                    }
+                }
+                CanvasCombineLayout::Tiled(imgs, _) => {
+                    let it = imgs.iter_mut().filter_map(|i| i.source.delete().err());
+                    errs.extend(it);
+                }
+            }
+        }
+        errs.is_empty().ok_or(errs)
     }
 }
 

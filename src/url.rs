@@ -15,6 +15,14 @@ pub struct ImageUrl {
     deleted: bool,
 }
 
+#[derive(Debug, Eq, PartialEq, Default)]
+pub enum DeleteStatus {
+    AlreadyGone,
+    #[default]
+    Deleted,
+    Remote,
+}
+
 impl ImageUrl {
     pub fn new(source: &str) -> Self {
         Self {
@@ -29,14 +37,23 @@ impl ImageUrl {
         &self.source
     }
 
-    pub fn delete(&mut self) -> Result<(), (&str, std::io::Error)> {
+    pub fn delete(&mut self) -> Result<DeleteStatus, (&str, std::io::Error)> {
         if !self.deleted {
-            if let Err(e) = std::fs::remove_file(&self.source) {
-                return Err((&self.source, e));
+            let source: &str = &self.source;
+            if let Err(e) = std::fs::remove_file(source) {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    self.deleted = true;
+                    return Ok(DeleteStatus::AlreadyGone);
+                } else {
+                    return Err((source, e));
+                }
             }
+
             self.deleted = true;
+            Ok(DeleteStatus::Deleted)
+        } else {
+            Ok(DeleteStatus::AlreadyGone)
         }
-        Ok(())
     }
 }
 

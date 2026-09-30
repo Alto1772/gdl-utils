@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use gdl_utils::combine::{cli::CombineArgs, composite::ImageCanvas};
@@ -43,30 +45,42 @@ fn main() -> Result<()> {
 
 fn do_combine(args: CombineArgs) -> Result<()> {
     let path = args.get_output();
-    let mut combiner = args.to_combiner()?;
+    let combiner = args.to_combiner()?;
 
-    let canvas = ImageCanvas::from_combiner(combiner.clone())?;
-    let image = DynamicImage::from(canvas.build());
+    let time_read_start = Instant::now();
+    let mut canvas = ImageCanvas::from_combiner(combiner)?;
     let (canvas_w, canvas_h) = canvas.dimensions();
     let scale = canvas.scale();
-    let (final_w, final_h) = image.dimensions();
-
+    println!("Time taken to read: {:?}", time_read_start.elapsed());
     println!("Canvas size: {canvas_w} x {canvas_h}");
     println!("Scale: {scale:.2}");
+    println!();
+
+    let time_build_start = Instant::now();
+    let image = DynamicImage::from(canvas.build());
+    println!(
+        "Time taken to generate image: {:?}",
+        time_build_start.elapsed()
+    );
     if scale != 1.0 {
+        let (final_w, final_h) = image.dimensions();
         println!("Size after scale: {final_w} x {final_h}");
     }
+    println!();
 
+    let time_save_start = Instant::now();
     let res = image
         .save(path)
         .with_context(|| format!("Cannot save to `{path}`"));
-    if res.is_err() {
+    println!("Time taken to save image: {:?}", time_save_start.elapsed());
+    if let Err(e) = res {
         let _ = std::fs::remove_file(path);
+        return Err(e);
     }
-    res?;
+    println!("Image creation success.");
 
-    if args.request_delete()
-        && let Err(errs) = combiner.delete_sources()
+    if args.should_delete_sources()
+        && let Err(errs) = canvas.delete_sources()
     {
         println!("Cannot delete {} of the following images:", errs.len());
         for (path, err) in errs {

@@ -377,7 +377,7 @@ impl CombineArgs {
         Ok(layout)
     }
 
-    pub fn request_delete(&self) -> bool {
+    pub fn should_delete_sources(&self) -> bool {
         self.delete
     }
 }
