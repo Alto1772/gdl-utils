@@ -1,0 +1,99 @@
+use crate::common::*;
+
+test_image_generate!(
+    background_rgb_hex,
+    ".jpg",
+    listglob("tests/inputs/placeholder/1200x800-*.jpg"),
+    [
+        "--border-size",
+        "12.5%",
+        "--gap",
+        "10%",
+        "--background",
+        "#7c2"
+    ]
+);
+
+test_image_generate!(
+    background_rgb_hex_2,
+    ".jpg",
+    listglob("tests/inputs/placeholder/1200x800-*.jpg"),
+    [
+        "--border-size",
+        "12.5%",
+        "--gap",
+        "10%",
+        "--background",
+        "#a040cc"
+    ]
+);
+
+test_image_generate!(
+    background_rgb,
+    ".jpg",
+    listglob("tests/inputs/placeholder/1200x800-*.jpg"),
+    [
+        "--border-size",
+        "12.5%",
+        "--gap",
+        "10%",
+        "--background",
+        "rgb(16,114,109)"
+    ]
+);
+
+test_image_generate!(
+    background_rgba,
+    ".png",
+    listglob("tests/inputs/placeholder/1200x800-*.jpg"),
+    [
+        "--border-size",
+        "12.5%",
+        "--gap",
+        "10%",
+        "--background",
+        "rgba(16,114,109,0.52)"
+    ]
+);
+
+test_image_generate!(
+    background_named_color,
+    ".jpg",
+    listglob("tests/inputs/placeholder/1200x800-*.jpg"),
+    [
+        "--border-size",
+        "12.5%",
+        "--gap",
+        "10%",
+        "--background",
+        "green"
+    ]
+);
+
+test_image_generate!(
+    background_named_color_2,
+    ".jpg",
+    listglob("tests/inputs/placeholder/1200x800-*.jpg"),
+    [
+        "--border-size",
+        "12.5%",
+        "--gap",
+        "10%",
+        "--background",
+        "firebrick"
+    ]
+);
+
+test_image_generate!(
+    background_rgb_from,
+    ".jpg",
+    listglob("tests/inputs/placeholder/1200x800-*.jpg"),
+    [
+        "--border-size",
+        "12.5%",
+        "--gap",
+        "10%",
+        "--background",
+        "rgb(from gold calc(r+10) calc(g-10) calc(b+20))"
+    ]
+);
