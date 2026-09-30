@@ -11,8 +11,13 @@ use image::{DynamicImage, GenericImageView};
 #[derive(Parser)]
 #[command(about)]
 struct Cli {
+    /// [TODO] gallery-dl configuration options
     #[arg(short, long, value_name = "KEY=VALUE")]
     options: Vec<String>,
+
+    /// Enable debugging information
+    #[arg(short, long)]
+    verbose: bool,
 
     #[command(subcommand)]
     command: Commands,
@@ -36,14 +41,22 @@ fn main() -> Result<()> {
     let matches = Cli::parse();
 
     match matches.command {
-        Commands::Combine(args) => do_combine(args)?,
+        Commands::Combine(args) => do_combine(args, matches.verbose)?,
         cmd => unimplemented!("{cmd:?}"),
     }
 
     Ok(())
 }
 
-fn do_combine(args: CombineArgs) -> Result<()> {
+fn do_combine(args: CombineArgs, verbose: bool) -> Result<()> {
+    macro_rules! v_eprintln {
+        ($($arg:tt)*) => {
+            if verbose {
+                eprintln!($($arg)*);
+            }
+        };
+    }
+
     let path = args.get_output();
     let combiner = args.to_combiner()?;
 
@@ -51,40 +64,39 @@ fn do_combine(args: CombineArgs) -> Result<()> {
     let mut canvas = ImageCanvas::from_combiner(combiner)?;
     let (canvas_w, canvas_h) = canvas.dimensions();
     let scale = canvas.scale();
-    println!("Time taken to read: {:?}", time_read_start.elapsed());
-    println!("Canvas size: {canvas_w} x {canvas_h}");
-    println!("Scale: {scale:.2}");
-    println!();
+    v_eprintln!("Time taken to read images: {:?}", time_read_start.elapsed());
+    v_eprintln!("Canvas size: {canvas_w} x {canvas_h}");
+    v_eprintln!("Scale: {scale:.2}");
+    v_eprintln!();
 
     let time_build_start = Instant::now();
     let image = DynamicImage::from(canvas.build());
-    println!(
+    v_eprintln!(
         "Time taken to generate image: {:?}",
         time_build_start.elapsed()
     );
     if scale != 1.0 {
         let (final_w, final_h) = image.dimensions();
-        println!("Size after scale: {final_w} x {final_h}");
+        v_eprintln!("Size after scale: {final_w} x {final_h}");
     }
-    println!();
 
     let time_save_start = Instant::now();
     let res = image
         .save(path)
         .with_context(|| format!("Cannot save to `{path}`"));
-    println!("Time taken to save image: {:?}", time_save_start.elapsed());
+    v_eprintln!("Time taken to save image: {:?}", time_save_start.elapsed());
     if let Err(e) = res {
         let _ = std::fs::remove_file(path);
         return Err(e);
     }
-    println!("Image creation success.");
+    v_eprintln!("Image creation success.");
 
     if args.should_delete_sources()
         && let Err(errs) = canvas.delete_sources()
     {
-        println!("Cannot delete {} of the following images:", errs.len());
+        eprintln!("Cannot delete {} of the following images:", errs.len());
         for (path, err) in errs {
-            println!("  {path}: {err}");
+            eprintln!("  {path}: {err}");
         }
     }
 
@@ -148,7 +160,7 @@ mod tests {
                     args.extend(images.iter().map(String::as_str));
 
                     let combine_args = TestCombine::parse_from(args).args;
-                    do_combine(combine_args).unwrap()
+                    do_combine(combine_args, true).unwrap()
                 }
             }
         };
